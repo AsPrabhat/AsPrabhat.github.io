@@ -1,21 +1,159 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Prabhat's Project Page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Project Report: CGCNN & ACE vs MACE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #020617;
+            --bg-secondary: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3 { font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; }
+        
+        h1 {
+            font-size: 3.5rem;
+            line-height: 1.2;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 2rem; }
+
+        nav {
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-links { display: flex; justify-content: center; gap: 2rem; list-style: none; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 500; font-family: 'Outfit', sans-serif; font-size: 1.1rem; transition: color 0.2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+
+        .hero { 
+            padding: 5rem 0 3rem;
+            text-align: center; 
+        }
+        .hero p.subtitle { font-size: 1.25rem; color: var(--text-muted); }
+        .hero p.author { font-size: 1.1rem; color: var(--text-main); margin-top: 1.5rem; font-weight: 500; }
+
+        .projects-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
+            gap: 2rem; 
+            margin-top: 2rem;
+            padding-bottom: 5rem;
+        }
+
+        .project-card {
+            background: var(--bg-secondary); 
+            border: 1px solid var(--border);
+            border-radius: 12px; 
+            padding: 2.5rem; 
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border-color: var(--accent);
+        }
+
+        .project-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: var(--accent);
+        }
+
+        .project-card p {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            flex-grow: 1;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            align-self: flex-start;
+        }
+
+        .project-card:hover .btn {
+            background: var(--accent);
+            color: #020617;
+            border-color: var(--accent);
+        }
+        
+        @media (max-width: 768px) {
+            .projects-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 2.5rem; }
+        }
+
+    </style>
 </head>
-
 <body>
-    <h1>Welcome to My Project Website</h1>
 
-    <p>
-        This is my first GitHub Pages website.
-    </p>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="cgcnn.html">CGCNN</a></li>
+            <li><a href="ace_mace.html">ACE vs MACE</a></li>
+        </ul>
+    </nav>
 
-    <h2>Projects</h2>
+    <div class="container">
+        <header class="hero">
+            <h1>Mini Project Report</h1>
+            <p class="subtitle">Accelerating Materials Discovery using Deep Learning</p>
+            <p class="author">By Prabhat</p>
+        </header>
 
-    <ul>
-        <li>CGCNN Materials Project</li>
-        <li>ML Research Work</li>
-    </ul>
+        <section class="projects-grid">
+            <a href="cgcnn.html" class="project-card">
+                <h2>Phase 1: CGCNN</h2>
+                <p>An exploration into predicting macroscopic material properties directly from crystal structure graphs using Crystal Graph Convolutional Neural Networks.</p>
+                <div class="btn">View Architecture & Results</div>
+            </a>
+            
+            <a href="ace_mace.html" class="project-card">
+                <h2>Phase 2: ACE vs MACE</h2>
+                <p>A rigorous benchmark comparing the strictly local Atomic Cluster Expansion model against the highly accurate, equivariant message passing of MACE for predicting analytical atomic forces.</p>
+                <div class="btn">View Architecture & Results</div>
+            </a>
+        </section>
+    </div>
+
 </body>
 </html>

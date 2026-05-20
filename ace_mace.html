@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACE vs MACE Benchmarking - Project Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-primary: #020617;
+            --bg-secondary: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-secondary: #8b5cf6;
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            line-height: 1.8;
+            overflow-x: hidden;
+        }
+
+        .bg-mesh {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
+            z-index: -1;
+            animation: pulse 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+
+        h1, h2, h3, h4, h5 { font-family: 'Outfit', sans-serif; font-weight: 700; margin-bottom: 1rem; }
+        
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+            text-align: center;
+            margin-top: 6rem;
+        }
+        
+        h2 {
+            font-size: 2.5rem;
+            background: linear-gradient(to right, var(--accent), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 1rem;
+            margin-top: 4rem;
+        }
+
+        h3 { font-size: 1.8rem; color: #fff; margin-top: 3rem; margin-bottom: 1.5rem; border-left: 4px solid var(--accent); padding-left: 1rem; }
+        h4 { font-size: 1.3rem; color: var(--accent); margin-top: 2rem; }
+        p { margin-bottom: 1.2rem; text-align: justify; }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem 5rem 2rem; }
+
+        nav {
+            position: fixed; top: 0; width: 100%; padding: 1rem 0;
+            background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border); z-index: 100;
+        }
+
+        .nav-links { display: flex; justify-content: center; gap: 2rem; list-style: none; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 500; font-family: 'Outfit', sans-serif; font-size: 1.1rem; transition: color 0.3s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+
+        .glass-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 2rem; backdrop-filter: blur(12px);
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        pre[class*="language-"] { 
+            border-radius: 8px; 
+            margin: 1.5rem 0; 
+            background: #1e1e1e !important; 
+            border: 1px solid var(--glass-border); 
+            font-size: 0.9rem; 
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .result-image-container {
+            margin-bottom: 4rem;
+            margin-top: 2rem;
+            text-align: center;
+        }
+        
+        .result-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin-bottom: 1.5rem;
+            background: white;
+            display: inline-block;
+        }
+        
+        .image-caption {
+            text-align: left;
+            font-size: 1rem;
+            color: var(--text-main);
+            background: rgba(0,0,0,0.2);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+        }
+        
+        .image-caption ul { margin-bottom: 0; margin-top: 0.5rem; }
+
+        ul { padding-left: 1.5rem; margin-bottom: 1.5rem; }
+        li { margin-bottom: 0.8rem; }
+        
+        .prompt-block { 
+            background: rgba(255, 255, 255, 0.05); 
+            border-left: 4px solid var(--accent-secondary); 
+            padding: 1rem 1.5rem; 
+            margin-bottom: 1rem; 
+            font-style: italic; 
+            color: var(--text-main); 
+            border-radius: 4px;
+        }
+        
+        .svg-container {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+            flex-direction: column;
+        }
+        
+        .svg-container svg { max-width: 100%; height: auto; border-radius: 8px; }
+        .svg-caption { margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem; text-align: center; }
+
+        .code-col {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        .code-col.fail { border-left-color: #ef4444; }
+        .code-col.success { border-left-color: #22c55e; }
+        .code-col h5 { font-size: 1.1rem; margin-top: 0; margin-bottom: 1rem;}
+        .code-col.fail h5 { color: #ef4444; }
+        .code-col.success h5 { color: #22c55e; }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-mesh"></div>
+
+    <nav>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="cgcnn.html">CGCNN</a></li>
+            <li><a href="ace_mace.html" class="active">ACE vs MACE</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>ACE vs MACE Benchmarking</h1>
+        <p style="text-align: center; color: var(--text-muted); font-size: 1.2rem; margin-bottom: 3rem;">Evaluating analytical atomic force predictions for Molecular Dynamics.</p>
+        
+        <!-- Introduction -->
+        <h3>1. Introduction</h3>
+        <p>Since the CGCNN model struggled with predicting directional vectors (like atomic forces), the second part of this project focused on testing out newer, more advanced models. When you run a Molecular Dynamics (MD) simulation, you need to know exactly which direction and how hard every single atom is being pushed at every timestep. To get that force vector, the model has to calculate the spatial derivative of the energy (\(F = -\nabla E\)).</p>
+        <p>For this phase, I set up a benchmarking pipeline to compare two of the main approaches used today: Atomic Cluster Expansion (ACE), which uses localized math, versus MACE, which uses equivariant message passing.</p>
+
+        <!-- Academic References -->
+        <div class="glass-card">
+            <h4>Academic References & Core Resources</h4>
+            <p>The benchmarking models were based on the following literature and resources:</p>
+            <ul>
+                <li><strong>Reference:</strong> <em>Drautz, R. (2019). Atomic cluster expansion for accurate and transferable interatomic potentials. Physical Review B.</em> - Referred to for understanding ACE mathematical definitions.</li>
+                <li><strong>Reference:</strong> <em>Batatia, I. et al. (2023). MACE: Higher order equivariant message passing neural networks for fast and accurate force fields.</em> - Referred to for understanding tensor contractions and equivariance.</li>
+                <li><strong>Codebase Reference (MACE):</strong> <a href="https://github.com/ACEsuit/mace" target="_blank" style="color: var(--primary);">ACEsuit/mace</a> - The official MACE repository referenced to understand the structural implementation.</li>
+                <li><strong>Codebase Reference (ACE):</strong> <a href="https://github.com/ICAMS/python-ace" target="_blank" style="color: var(--primary);">ICAMS/python-ace (pacemaker)</a> - The official ACE repository referenced to understand the structural implementation.</li>
+                <li><strong>Software & Tools:</strong> The benchmarking framework was evaluated using LAMMPS and the Atomic Simulation Environment (ASE) to run practical molecular dynamics simulations on CPUs and GPUs.</li>
+            </ul>
+        </div>
+
+        <!-- Background Knowledge -->
+        <h3>2. Background Knowledge</h3>
+        <p>Before diving into the code, I had to figure out why predicting forces is so much harder than predicting energy.</p>
+        
+        <div class="glass-card">
+            <h4>Concept 1: The Challenge of Predicting Forces</h4>
+            <p>Energy is a scalar, meaning it's just a single number. No matter how you rotate a crystal, its total energy stays the same. But Force is a vector; it has a magnitude and a specific 3D direction. To get the force, we have to take the derivative of the energy with respect to the atom's position (\(F = -\nabla E\)).</p>
+            <p>This brings up a huge mathematical headache called <strong>Equivariance</strong>. If I rotate a molecule by 90 degrees, its energy doesn't change (Invariant), but the force arrows pointing off the atoms need to rotate by exactly 90 degrees too (Equivariant). Standard networks like CGCNN just pass around scalar distances, so they have no idea which way is "up" or "down" when the molecule rotates.</p>
+            <div class="svg-container">
+                <img src="assets/images/lennard_jones.svg" alt="Lennard-Jones Potential" style="background-color: white; padding: 10px; border-radius: 8px; max-height: 250px;" />
+                <div class="svg-caption">Atomic forces are derived from the negative gradient of the potential energy surface. Accurately modeling this derivative requires smooth, continuous mathematical basis functions. (Source: Wikimedia)</div>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h4>Concept 2: Atomic Cluster Expansion (ACE)</h4>
+            <p>Atomic Cluster Expansion (ACE) is an optimized mathematical framework designed to create local descriptors of atomic environments. Instead of relying on iterative neural network layers, ACE evaluates a static descriptor for each central atom by analyzing its neighbors within a strict geometric cutoff radius (e.g., 5.0 Å).</p>
+            <p>ACE builds its descriptor by systematically expanding the atomic environment into a complete basis set. It characterizes interactions based on <strong>body-order</strong>, effectively counting how many atoms are interacting simultaneously:</p>
+            <ul>
+                <li><strong>2-Body (Radial Basis):</strong> Examines pairs of atoms. It captures pure Euclidean distance interactions (like stretching or compressing a spring) between the central atom and a single neighbor.</li>
+                <li><strong>3-Body (Spherical Harmonics):</strong> Examines triplets of atoms. It captures angular orientations mathematically (like the hinge of a bond angle).</li>
+                <li><strong>Higher Body-Orders:</strong> Can capture complex torsion angles (4-body) and beyond.</li>
+            </ul>
+            
+            <div class="svg-container">
+                <svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 2-Body -->
+                    <circle cx="80" cy="100" r="12" fill="#38bdf8" />
+                    <circle cx="150" cy="100" r="10" fill="#94a3b8" />
+                    <line x1="80" y1="100" x2="150" y2="100" stroke="white" stroke-width="2" stroke-dasharray="4,4" />
+                    <text x="115" y="90" font-family="Arial" font-size="12" fill="#f8fafc" text-anchor="middle">Distance (r)</text>
+                    <text x="115" y="140" font-family="Arial" font-size="14" fill="#f8fafc" text-anchor="middle">2-Body Correlation</text>
+                    
+                    <!-- 3-Body -->
+                    <circle cx="280" cy="100" r="12" fill="#38bdf8" />
+                    <circle cx="340" cy="60" r="10" fill="#94a3b8" />
+                    <circle cx="340" cy="140" r="10" fill="#94a3b8" />
+                    <line x1="280" y1="100" x2="340" y2="60" stroke="white" stroke-width="2" />
+                    <line x1="280" y1="100" x2="340" y2="140" stroke="white" stroke-width="2" />
+                    <path d="M 310 80 Q 320 100 310 120" fill="transparent" stroke="#22c55e" stroke-width="2" />
+                    <text x="330" y="105" font-family="Arial" font-size="12" fill="#22c55e" text-anchor="middle">Angle (θ)</text>
+                    <text x="310" y="170" font-family="Arial" font-size="14" fill="#f8fafc" text-anchor="middle">3-Body Correlation</text>
+                </svg>
+                <div class="svg-caption">Body-ordering physically represents how many atoms are interacting simultaneously. 2-body captures distance; 3-body captures angular geometry.</div>
+            </div>
+            
+            <p>However, extending ACE to higher body orders (like 5-body or 6-body) causes a massive combinatorial explosion in computational cost. Therefore, ACE usually truncates at lower orders. Because ACE computes these truncated descriptors in a single, localized mathematical pass without deep graph routing, it achieves very high computational efficiency, making it highly suitable for fast Molecular Dynamics simulations.</p>
+        </div>
+
+        <div class="glass-card">
+            <h4>Concept 3: MACE (Equivariant Message Passing)</h4>
+            <p>MACE (Message Passing Atomic Cluster Expansion) merges the rigorous, body-ordered descriptors of ACE with the dynamic routing of a Graph Neural Network. While ACE is strictly limited to the atoms within its immediate cutoff radius and truncated at lower body orders, MACE bypasses this combinatorial explosion through Iterative Message Passing.</p>
+            <p>By passing a 3-body message to a neighbor, and then passing that message again to another neighbor, MACE effectively creates a 5-body correlation without ever having to calculate it directly. This significantly expands the receptive field and the effective body-order of each atom.</p>
+            
+            <div class="svg-container">
+                <svg width="500" height="150" viewBox="0 0 500 150" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="75" r="10" fill="#38bdf8" />
+                    <circle cx="150" cy="75" r="10" fill="#8b5cf6" />
+                    <circle cx="250" cy="75" r="10" fill="#22c55e" />
+                    <circle cx="350" cy="75" r="10" fill="#ef4444" />
+                    
+                    <line x1="60" y1="75" x2="140" y2="75" stroke="white" stroke-width="2" />
+                    <line x1="160" y1="75" x2="240" y2="75" stroke="white" stroke-width="2" />
+                    <line x1="260" y1="75" x2="340" y2="75" stroke="white" stroke-width="2" />
+                    
+                    <path d="M 50 60 Q 150 10 250 60" fill="transparent" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="4,4" />
+                    <text x="150" y="30" font-family="Arial" font-size="12" fill="#94a3b8" text-anchor="middle">Layer 1 Message</text>
+                    
+                    <path d="M 50 90 Q 200 140 350 90" fill="transparent" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" />
+                    <text x="200" y="135" font-family="Arial" font-size="12" fill="#94a3b8" text-anchor="middle">Layer 2 Message (Receptive Field Expanded)</text>
+                </svg>
+                <div class="svg-caption">Iterative message passing allows MACE to expand its receptive field beyond the immediate geometric cutoff, capturing long-range atomic influences and simulating infinite body-orders.</div>
+            </div>
+            
+            <p><strong>Maintaining O(3) Equivariance:</strong> As the model passes these complex geometrical messages, it must ensure that the predicted force vectors rotate correctly if the entire molecule rotates. To accomplish this, MACE utilizes mathematical operations from quantum mechanics known as <strong>Clebsch-Gordan tensor contractions</strong> during its message passing layers.</p>
+            
+            <div class="svg-container">
+                <svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+                    <!-- State 1 -->
+                    <circle cx="100" cy="100" r="15" fill="#38bdf8" />
+                    <circle cx="100" cy="140" r="10" fill="#94a3b8" />
+                    <circle cx="140" cy="100" r="10" fill="#94a3b8" />
+                    <line x1="100" y1="100" x2="100" y2="140" stroke="white" stroke-width="2" />
+                    <line x1="100" y1="100" x2="140" y2="100" stroke="white" stroke-width="2" />
+                    <!-- Force vector 1 -->
+                    <line x1="100" y1="100" x2="130" y2="70" stroke="#ef4444" stroke-width="3" marker-end="url(#arrow-red)" />
+                    
+                    <text x="100" y="180" font-family="Arial" font-size="14" fill="#f8fafc" text-anchor="middle">Original State</text>
+                    
+                    <!-- Rotation Arrow -->
+                    <path d="M 180 100 Q 200 70 220 100" fill="transparent" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)" stroke-dasharray="4,4" />
+                    <text x="200" y="60" font-family="Arial" font-size="12" fill="#22c55e" text-anchor="middle">Rotate 45°</text>
+
+                    <!-- State 2 (Rotated 45 degrees) -->
+                    <g transform="translate(300, 100) rotate(45) translate(-100, -100)">
+                        <circle cx="100" cy="100" r="15" fill="#38bdf8" />
+                        <circle cx="100" cy="140" r="10" fill="#94a3b8" />
+                        <circle cx="140" cy="100" r="10" fill="#94a3b8" />
+                        <line x1="100" y1="100" x2="100" y2="140" stroke="white" stroke-width="2" />
+                        <line x1="100" y1="100" x2="140" y2="100" stroke="white" stroke-width="2" />
+                        <!-- Force vector 2 -->
+                        <line x1="100" y1="100" x2="130" y2="70" stroke="#ef4444" stroke-width="3" marker-end="url(#arrow-red)" />
+                    </g>
+                    
+                    <text x="300" y="180" font-family="Arial" font-size="14" fill="#f8fafc" text-anchor="middle">Equivariant Output</text>
+
+                    <defs>
+                        <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#ef4444" />
+                        </marker>
+                        <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#22c55e" />
+                        </marker>
+                    </defs>
+                </svg>
+                <div class="svg-caption">Equivariance ensures that if the input crystal rotates in 3D space, the predicted force vector (red) rotates synchronously and flawlessly.</div>
+            </div>
+            
+            <p>This mathematically preserves the O(3) equivariance of the geometric features, allowing MACE to achieve highly accurate vector predictions, though at the expense of a higher computational overhead compared to ACE.</p>
+        </div>
+        
+        <!-- AI Prompts -->
+        <h3>3. Implementation Workflow and AI Assistance</h3>
+        <p>The directory structure and PyTorch Geometric workflow were set up with assistance from AI tools. The following prompts were used during development:</p>
+        
+        <div class="glass-card">
+            <h4>Prompts Used</h4>
+            <div class="prompt-block">"I need to build a PyTorch benchmarking suite to compare ACE and MACE force fields. First, help me set up a modular structure with `src/dataset.py`, `src/models/`, and `src/trainer.py`, alongside a 5-step Jupyter notebook pipeline starting from `01_Data_Preparation.ipynb` through `05_Results_Comparison.ipynb`."</div>
+            <div class="prompt-block">"In `src/dataset.py`, write a custom PyTorch `Dataset` that reads Molecular Dynamics `.extxyz` trajectories using ASE. Crucially, it must compute Periodic Boundary Condition (PBC) shift vectors to correctly construct the graph across the simulation box."</div>
+            <div class="prompt-block">"For `02_ACE_Training.ipynb` and `03_MACE_Training.ipynb`, provide the PyTorch training setups. Make sure to use SiLU (Swish) activations instead of ReLU so the energy surface remains continuously differentiable when calculating forces."</div>
+            <div class="prompt-block">"In `src/trainer.py`, I need a unified evaluation function. Since we are predicting atomic forces, write a loop that predicts the total energy, and then uses `torch.autograd.grad()` to take the spatial derivative of the energy with respect to atomic positions to analytically derive the force vectors."</div>
+            <div class="prompt-block">"For `05_Results_Comparison.ipynb`, generate the Matplotlib code to plot Parity plots and Inference Cost histograms comparing the logged metrics of the two models across the fractional data splits (10%, 40%, 70%, 100%)."</div>
+        </div>
+
+        <!-- Architecture and Implementation Detailed -->
+        <h3>4. Modular Architecture & Implementation</h3>
+        <p>The project was organized into modular directories (`src/dataset.py`, `src/models/`, `src/trainer.py`) accompanied by a Jupyter Notebook workflow. Below is a walkthrough of the files.</p>
+
+        <div class="glass-card">
+            <h4>File: Dataset and PBC (<code>src/dataset.py</code>)</h4>
+            <p>Molecular Dynamics trajectories are simulated within bounded boxes. The graph implementation must account for Periodic Boundary Conditions (PBC) so atoms at the edge of the box correctly bond with atoms on the opposite edge.</p>
+            <pre><code class="language-python"># Excerpt from src/dataset.py
+import torch
+import ase.neighborlist
+import numpy as np
+
+def build_pbc_graph(atoms, cutoff=5.0):
+    # Extract PBC-aware indices & shift vectors via ASE
+    i_idx, j_idx, shift_vectors = ase.neighborlist.neighbor_list("ijS", atoms, cutoff)
+    edge_index = torch.tensor(np.vstack([i_idx, j_idx]), dtype=torch.long)
+    
+    # Store fractional shifts for distance calculations
+    cell = torch.tensor(atoms.get_cell()[:], dtype=torch.float32)
+    
+    # This shift matrix corrects distances across box boundaries
+    edge_shift = torch.tensor(shift_vectors, dtype=torch.float32) @ cell
+    
+    return edge_index, edge_shift
+</code></pre>
+        </div>
+
+        <div class="glass-card">
+            <h4>File: Unified Trainer (<code>src/trainer.py</code>)</h4>
+            <p>A unified trainer class was written to benchmark both models. Unlike standard evaluation loops which use <code>@torch.no_grad()</code>, this implementation requires gradients to be tracked in order to compute the spatial derivative of Energy for determining Forces.</p>
+            <pre><code class="language-python"># Excerpt from src/trainer.py
+import torch
+
+class UnifiedTrainer:
+    # Evaluation requires gradients to compute forces
+    def evaluate_loader(self, loader, prefix="val"):
+        self.model.eval()
+        total_e_loss, total_f_loss = 0, 0
+        
+        for batch in loader:
+            batch = batch.to(self.device, non_blocking=True)
+            
+            # Forward pass: must require grad on positions
+            batch.pos.requires_grad_(True)
+            
+            # Predict Energy
+            pred_energy = self.model(batch)
+            
+            # Analytically derive Forces: F = - dE / dR
+            pred_forces = -1 * torch.autograd.grad(
+                outputs=pred_energy,
+                inputs=batch.pos,
+                grad_outputs=torch.ones_like(pred_energy),
+                create_graph=True,
+                retain_graph=True
+            )[0]
+            
+            # Calculate errors
+            e_loss = self.criterion_e(pred_energy, batch.energy)
+            f_loss = self.criterion_f(pred_forces, batch.forces)
+</code></pre>
+        </div>
+        
+        <div class="glass-card">
+            <h4>Notebook 01: Data Preparation (<code>01_Data_Preparation.ipynb</code>)</h4>
+            <p><strong>Input:</strong> Raw `.extxyz` Molecular Dynamics trajectory files.<br>
+            <strong>Output:</strong> Fractional data splits (10%, 40%, 70%, 100%) formatted as PyTorch Geometric datasets.</p>
+            <p>This notebook parses the trajectory frames and extracts atomic positions, forces, and energies. Crucially, it splits the dataset into varying sizes to allow for benchmarking how model accuracy scales with available training data.</p>
+            <pre><code class="language-python"># Excerpt from 01_Data_Preparation.ipynb
+import ase.io
+from torch_geometric.data import Data
+
+def parse_trajectory(extxyz_path, split_ratio):
+    frames = ase.io.read(extxyz_path, index=":")
+    subset_size = int(len(frames) * split_ratio)
+    
+    dataset = []
+    for frame in frames[:subset_size]:
+        # Extract atomic properties
+        pos = torch.tensor(frame.get_positions(), dtype=torch.float32)
+        forces = torch.tensor(frame.get_forces(), dtype=torch.float32)
+        energy = torch.tensor([frame.get_potential_energy()], dtype=torch.float32)
+        
+        # Build PBC graph (utilizing the function from dataset.py)
+        edge_index, edge_shift = build_pbc_graph(frame)
+        
+        dataset.append(Data(pos=pos, forces=forces, energy=energy, 
+                            edge_index=edge_index, edge_shift=edge_shift))
+    return dataset
+</code></pre>
+        </div>
+
+        <div class="glass-card">
+            <h4>Notebook 02: ACE Model Training (<code>02_ACE_Training.ipynb</code>)</h4>
+            <p><strong>Input:</strong> Processed PyTorch Geometric datasets.<br>
+            <strong>Output:</strong> Trained ACE model weights (`.pth`) and logged training metrics (`.csv`).</p>
+            <p>This notebook handles the initialization and training of the localized ACE model. A critical implementation detail here was using `SiLU` (Swish) activations. Because forces are calculated via the spatial derivative of the energy, a continuously differentiable activation function like SiLU is required to prevent jagged, discontinuous force predictions that would occur with standard ReLU.</p>
+            <pre><code class="language-python"># Excerpt from 02_ACE_Training.ipynb
+import torch.nn as nn
+from src.trainer import UnifiedTrainer
+
+# Defining the ACE Network with SiLU for continuous derivatives
+class ACEModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.radial_basis = RadialBasis(cutoff=5.0)
+        self.angular_basis = SphericalHarmonics(l_max=3)
+        # SiLU is crucial here for smooth Force (gradient) calculation
+        self.mlp = nn.Sequential(
+            nn.Linear(128, 64),
+            nn.SiLU(), 
+            nn.Linear(64, 1)
+        )
+
+# Initialize trainer with composite loss (Energy + Force)
+trainer = UnifiedTrainer(
+    model=ACEModel(),
+    criterion_e=nn.MSELoss(),
+    criterion_f=nn.MSELoss(),
+    energy_weight=0.2, # Scale to balance numerical gradients
+    force_weight=0.8
+)
+</code></pre>
+        </div>
+
+        <div class="glass-card">
+            <h4>Notebook 03: MACE Model Training (<code>03_MACE_Training.ipynb</code>)</h4>
+            <p><strong>Input:</strong> Processed PyTorch Geometric datasets.<br>
+            <strong>Output:</strong> Trained MACE model weights (`.pth`) and logged training metrics (`.csv`).</p>
+            <p>This notebook sets up the MACE network, utilizing the `e3nn` library to maintain O(3) equivariance. The core architectural difference here is the use of Tensor Products to couple the spherical harmonic features, ensuring that the predicted forces transform correctly if the crystal geometry rotates.</p>
+            <pre><code class="language-python"># Excerpt from 03_MACE_Training.ipynb
+from e3nn import o3
+from src.trainer import UnifiedTrainer
+
+class MACELayer(nn.Module):
+    def __init__(self, irreps_in, irreps_out):
+        super().__init__()
+        # Irreps mathematically define how features transform under 3D rotation
+        self.irreps_in = o3.Irreps(irreps_in)
+        self.irreps_out = o3.Irreps(irreps_out)
+        self.irreps_sh = o3.Irreps("1x0e + 1x1o + 1x2e") # Spherical Harmonics
+        
+        # Clebsch-Gordan Tensor Product to maintain Equivariance
+        self.tp = o3.FullyConnectedTensorProduct(
+            self.irreps_in, self.irreps_sh, self.irreps_out
+        )
+
+# Initialize trainer for MACE (using identical loss scaling as ACE for fairness)
+trainer = UnifiedTrainer(
+    model=MACEModel(num_message_passing_layers=2),
+    criterion_e=nn.MSELoss(),
+    criterion_f=nn.MSELoss(),
+    energy_weight=0.2,
+    force_weight=0.8
+)
+</code></pre>
+        </div>
+
+        <div class="glass-card">
+            <h4>Notebook 04: Inference Benchmarking (<code>04_Inference_Benchmark.ipynb</code>)</h4>
+            <p><strong>Input:</strong> Trained model weights and test dataset.<br>
+            <strong>Output:</strong> Latency metrics (milliseconds per forward step).</p>
+            <p>This notebook isolates the computational cost of the models. It runs the evaluation loop strictly to measure the time taken to compute forces, providing the raw latency data needed to contrast ACE's speed with MACE's accuracy.</p>
+            <pre><code class="language-python"># Excerpt from 04_Inference_Benchmark.ipynb
+import time
+import numpy as np
+
+def benchmark_latency(model, dataloader, num_runs=50):
+    latencies = []
+    model.eval()
+    
+    for i, batch in enumerate(dataloader):
+        if i >= num_runs: break
+        
+        batch = batch.to('cuda')
+        batch.pos.requires_grad_(True)
+        
+        # Start timer right before the physics computation
+        start_time = time.perf_counter()
+        
+        # Forward pass and gradient tracking
+        energy = model(batch)
+        forces = torch.autograd.grad(
+            outputs=energy, inputs=batch.pos, 
+            grad_outputs=torch.ones_like(energy)
+        )[0]
+        
+        end_time = time.perf_counter()
+        
+        latencies.append((end_time - start_time) * 1000) # convert to ms
+        
+    print(f"Average Latency: {np.mean(latencies):.2f} ms/batch")
+</code></pre>
+        </div>
+
+        <div class="glass-card">
+            <h4>Notebook 05: Results & Comparison (<code>05_Results_Comparison.ipynb</code>)</h4>
+            <p><strong>Input:</strong> Logged metrics from notebooks 02, 03, and 04.<br>
+            <strong>Output:</strong> Final benchmarking graphs (Parity plots, Data scaling curves, Cost vs Accuracy).</p>
+            <p>The final notebook aggregates all the CSV logs generated by the training and benchmarking phases. It utilizes Matplotlib to generate the visual comparisons that form the basis of the conclusions drawn in this project.</p>
+            <pre><code class="language-python"># Excerpt from 05_Results_Comparison.ipynb
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Load logged force MAE across different fractional data splits
+df_ace = pd.read_csv('ace_scaling_metrics.csv')
+df_mace = pd.read_csv('mace_scaling_metrics.csv')
+
+plt.figure(figsize=(8, 6))
+# Plotting the scaling performance
+plt.plot(df_ace['dataset_size'], df_ace['force_mae'], marker='o', label='ACE')
+plt.plot(df_mace['dataset_size'], df_mace['force_mae'], marker='s', label='MACE')
+
+plt.xlabel("Dataset Size (%)")
+plt.ylabel("Force MAE (eV/Å)")
+plt.title("Force Accuracy vs Data Scaling")
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+</code></pre>
+        </div>
+
+        <!-- Challenges and Solutions -->
+        <h3>5. Engineering Challenges & Solutions</h3>
+        <p>Developing a framework to compute analytical derivatives presented several challenges that required manual debugging and resolution.</p>
+        
+        <div class="glass-card">
+            <h4>Challenge 1: Gradient Tracking During Evaluation</h4>
+            <p>An initial evaluation loop used the standard <code>@torch.no_grad()</code> decorator commonly used for inference. Because the target variable (Atomic Force) requires calculating the spatial derivative of energy, disabling gradients caused the evaluation loop to fail.</p>
+            
+            <div class="code-col fail">
+                <h5>Initial Approach</h5>
+<pre><code class="language-python"># Disables autograd graph, causing force derivation to fail
+@torch.no_grad()
+def evaluate(model, batch):
+    energy = model(batch)
+    # Crashes: element 0 of tensors does not require grad
+    forces = torch.autograd.grad(energy, batch.pos)[0]
+</code></pre>
+            </div>
+            <div class="code-col success">
+                <h5>Corrected Implementation</h5>
+<pre><code class="language-python"># Explicitly track gradients on atomic positions
+def evaluate(model, batch):
+    batch.pos.requires_grad_(True) # Enable tracking
+    energy = model(batch)
+    
+    # Successfully computes analytical forces
+    forces = torch.autograd.grad(
+        outputs=energy, inputs=batch.pos, 
+        grad_outputs=torch.ones_like(energy), create_graph=True
+    )[0]
+</code></pre>
+            </div>
+            
+            <h4 style="margin-top: 3rem;">Challenge 2: Periodic Boundary Distance Calculation</h4>
+            <p>An early attempt calculated atomic neighbors using a simple Euclidean distance matrix. This approach is invalid for MD simulations as it ignores Periodic Boundary Conditions (PBC), leaving atoms at the cell boundaries completely disconnected from their mirrored neighbors.</p>
+
+            <div class="code-col fail">
+                <h5>Initial Approach</h5>
+<pre><code class="language-python"># Naive Euclidean distance ignores simulation boundaries
+def get_neighbors(positions, cutoff=5.0):
+    # Calculates distances strictly within the primary cell
+    dist_matrix = torch.cdist(positions, positions)
+    edge_index = (dist_matrix < cutoff).nonzero().t()
+    return edge_index
+</code></pre>
+            </div>
+            <div class="code-col success">
+                <h5>Corrected Implementation</h5>
+<pre><code class="language-python"># Utilizes ASE to correctly map periodic shift vectors
+import ase.neighborlist
+
+def get_neighbors(atoms_object, cutoff=5.0):
+    # 'S' extracts the periodic shift vectors for cross-boundary bonds
+    i, j, S = ase.neighborlist.neighbor_list("ijS", atoms_object, cutoff)
+    edge_index = torch.tensor([i, j])
+    edge_shift = torch.tensor(S)
+    return edge_index, edge_shift
+</code></pre>
+            </div>
+            
+            <h4 style="margin-top: 3rem;">Challenge 3: Loss Function Weighting</h4>
+            <p>Because Energy (Scalar) and Force (Vector Array) have radically different numerical scales, the initial model weights became imbalanced. The network heavily prioritized minimizing the larger Force error and neglected the Energy error.</p>
+
+            <div class="code-col fail">
+                <h5>Initial Approach</h5>
+<pre><code class="language-python"># Unweighted composite loss
+energy_loss = mse(pred_energy, true_energy)
+force_loss = mse(pred_forces, true_forces)
+
+# Gradients dominated by force_loss magnitude
+total_loss = energy_loss + force_loss
+total_loss.backward()
+</code></pre>
+            </div>
+            <div class="code-col success">
+                <h5>Corrected Implementation</h5>
+<pre><code class="language-python"># Weighted composite loss balances the gradient descent
+energy_loss = mse(pred_energy, true_energy)
+force_loss = mse(pred_forces, true_forces)
+
+# Coefficients dynamically balance the optimization targets
+energy_weight = 0.2
+force_weight = 0.8
+total_loss = (energy_weight * energy_loss) + (force_weight * force_loss)
+total_loss.backward()
+</code></pre>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <h3>6. Hardware Profiling & Results</h3>
+        
+        <div class="glass-card">
+            <h4>Hardware Performance Comparison</h4>
+            <p>Running the baseline models on a local GPU (RTX 3050, 4GB VRAM) highlighted hardware limitations. Moving the training to Kaggle instances with larger GPUs (T4, 16GB VRAM) resolved memory constraints and improved training speeds.</p>
+            
+            <div class="result-image-container">
+                <h5 style="text-align: left; margin-bottom: 1rem; color: var(--text-main);">1. Local Execution (RTX 3050 - 4GB)</h5>
+                <img src="assets/images/final_comparison_plot.png" class="result-image" alt="RTX 3050 Benchmark Plot">
+            </div>
+            
+            <div class="result-image-container">
+                <h5 style="text-align: left; margin-bottom: 1rem; color: var(--text-main);">2. Cloud Execution (Kaggle T4 - 16GB)</h5>
+                <img src="assets/images/kaggle_comparison_plot.png" class="result-image" alt="Kaggle GPU Benchmark Plot">
+            </div>
+            
+            <div class="image-caption">
+                <p><strong>Observations from Hardware Profiling:</strong></p>
+                <ul>
+                    <li><strong>Memory Usage:</strong> The larger VRAM capacity of the Kaggle GPUs allowed for larger batch sizes without out-of-memory errors.</li>
+                    <li><strong>Validation Energy MAE:</strong> Both models were able to minimize energy error, but MACE showed greater stability compared to ACE.</li>
+                    <li><strong>Validation Force MAE:</strong> MACE achieved lower error rates in predicting vector atomic forces compared to ACE.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="result-image-container">
+            <img src="assets/images/parity_plot.png" class="result-image" alt="Parity Plot">
+            <div class="image-caption">
+                <p><strong>Observations from Parity Plots:</strong></p>
+                <ul>
+                    <li><strong>ACE Predictions:</strong> The ACE force parity plot indicated higher variance from the reference data, especially at higher magnitudes.</li>
+                    <li><strong>MACE Predictions:</strong> The MACE force predictions showed tighter correlation across all magnitudes, reflecting the benefits of O(3) Equivariance.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="result-image-container">
+            <img src="assets/images/cost_vs_accuracy_plot.png" class="result-image" alt="Cost vs Accuracy">
+            <div class="image-caption">
+                <p><strong>Observations from Inference Cost:</strong></p>
+                <ul>
+                    <li><strong>ACE Computational Efficiency:</strong> ACE demonstrated faster execution times per forward step.</li>
+                    <li><strong>MACE Computational Cost:</strong> MACE required significantly more time per step, indicating the higher computational cost of its graph message passing framework.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="result-image-container">
+            <img src="assets/images/data_scaling_plot.png" class="result-image" alt="Data Scaling Plot">
+            <div class="image-caption">
+                <p><strong>Observations from Data Scaling:</strong></p>
+                <ul>
+                    <li><strong>Model Performance with Data Volume:</strong> ACE demonstrated a massive improvement in force accuracy as the training dataset size increased. In contrast, MACE proved to be highly data-efficient, achieving excellent accuracy even when trained on just 10% of the available data.</li>
+                    <li><strong>Overhead:</strong> Time and memory requirements scaled linearly with dataset size for both models.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Conclusion -->
+        <h3>7. Final Thoughts</h3>
+        <p>Running these benchmarks really put things into perspective. ACE is incredibly fast because it only looks at the immediate neighbors and doesn't bother passing messages around the whole graph. If you just need a quick and dirty MD simulation, ACE is definitely the way to go.</p>
+        <p>On the flip side, MACE is incredibly accurate. Because it uses equivariant message passing, it actually understands the 3D geometry of the forces. The only downside is that it is quite slow. In my tests, it took about 6 times longer to run than ACE.</p>
+        <p>Ultimately, there's no perfect model. You just have to pick what matters more for your specific project: do you need it done fast (ACE), or do you need it done right (MACE)?</p>
+    </div>
+
+    <!-- Prism JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>
